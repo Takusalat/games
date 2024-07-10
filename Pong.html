@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Sans+MS:wght@400;700&display=swap" rel="stylesheet">
+    <title>Pong Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #fc9797;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+        }
+
+        canvas {
+            background-color: #247c01;
+            border: 2px solid #004d40;
+            display: block;
+            margin: 0 auto; /* Center the canvas */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .dropdown {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .dropdown label {
+            margin-bottom: 10px;
+        }
+
+
+        .dropdown select {
+            padding: 8px; /* Mehr Platz um den Text */
+            font-size: 16px;
+            border: 1px solid #ccc; /* Helle Rahmenfarbe */
+            border-radius: 5px;
+            background-color: #f8f8f8; /* Hellere Hintergrundfarbe */
+            width: 150px;
+        }
+
+        .dropdown select:hover {
+            background-color: #e0e0e0; /* Farbwechsel bei Hover */
+        }
+
+        .dropdown select:focus {
+            outline: none; /* Entfernt den blauen Rahmen bei Fokus */
+            border-color: #66afe9; /* Farbe des Rahmens beim Fokus */
+        }
+
+        .score-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 200px;
+            padding: 10px;
+            background-color: #f44336;
+            border: 2px solid #b71c1c;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .score {
+            flex: 1;
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none; /* Initially hidden */
+            font-size: 28px;
+            font-weight: bold;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            z-index: 10; /* Ensure it's on top */
+        }
+
+        .popup.show {
+            display: block; /* Show when .show class is added */
+        }
+
+
+
+        .dropdown {
+            margin-top: 10px;
+        }
+
+
+
+
+        button {
+            margin-top: 20px;
+            position: relative;
+            border: none;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            outline-offset: 4px;
+            transition: filter 250ms;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .shadow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            background: hsl(0deg 0% 0% / 0.25);
+            will-change: transform;
+            transform: translateY(2px);
+            transition: transform
+            600ms
+            cubic-bezier(.3, .7, .4, 1);
+        }
+
+        .edge {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            background: linear-gradient(
+                    to left,
+                    hsl(340deg 100% 16%) 0%,
+                    hsl(340deg 100% 32%) 8%,
+                    hsl(340deg 100% 32%) 92%,
+                    hsl(340deg 100% 16%) 100%
+            );
+        }
+
+        .front {
+            display: block;
+            position: relative;
+            padding: 12px 27px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            color: white;
+            background: hsl(345deg 100% 47%);
+            will-change: transform;
+            transform: translateY(-4px);
+            transition: transform
+            600ms
+            cubic-bezier(.3, .7, .4, 1);
+        }
+
+        button:hover {
+            filter: brightness(110%);
+        }
+
+        button:hover .front {
+            transform: translateY(-6px);
+            transition: transform
+            250ms
+            cubic-bezier(.3, .7, .4, 1.5);
+        }
+
+        button:active .front {
+            transform: translateY(-2px);
+            transition: transform 34ms;
+        }
+
+        button:hover .shadow {
+            transform: translateY(4px);
+            transition: transform
+            250ms
+            cubic-bezier(.3, .7, .4, 1.5);
+        }
+
+        button:active .shadow {
+            transform: translateY(1px);
+            transition: transform 34ms;
+        }
+
+        button:focus:not(:focus-visible) {
+            outline: none;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="menu" class="popup show">
+    <h1>Spielerauswahl</h1>
+    <div class="dropdown">
+        <label for="player1">Blau: </label>
+        <select id="player1">
+            <option value="human">Mensch</option>
+            <option value="computer">Computer</option>
+        </select>
+    </div>
+    <div class="dropdown">
+        <label for="player2">Rot: </label>
+        <select id="player2">
+            <option value="human">Mensch</option>
+            <option value="computer">Computer</option>
+        </select>
+    </div>
+    <button id="startButton" class="buttons">
+        <span class="shadow"></span>
+        <span class="edge"></span>
+        <span class="front text"> Start Game</span>
+    </button>
+    <button id="homeButton" class="buttons">
+        <span class="shadow"></span>
+        <span class="edge"></span>
+        <span class="front text"> Main Menu</span>
+    </button>
+</div>
+
+<canvas id="pongCanvas" width="800" height="400" style="display:none"></canvas>
+<div class="score-container" style="display:none">
+    <div id="playerScore" class="score">0</div>
+    <div id="computerScore" class="score">0</div>
+</div>
+<div id="gameOverText" class="popup">
+    <div id="winnerText"></div>
+    <button id="restartButton" class="buttons">
+        <span class="shadow"></span>
+        <span class="edge"></span>
+        <span class="front text">Restart</span>
+        </button>
+    <button id="mainMenuButton" class="buttons">
+        <span class="shadow"></span>
+        <span class="edge"></span>
+        <span class="front text">Spielerauswahl</span>
+        </button>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const menu = document.getElementById('menu');
+        const startButton = document.getElementById('startButton');
+        const homeButton = document.getElementById('homeButton');
+        const canvas = document.getElementById('pongCanvas');
+        const ctx = canvas.getContext('2d');
+        const playerScoreElement = document.getElementById('playerScore');
+        const computerScoreElement = document.getElementById('computerScore');
+        const gameOverPopup = document.getElementById('gameOverText');
+        const winnerText = document.getElementById('winnerText');
+        const mainMenuButton = document.getElementById('mainMenuButton');
+        const restartButton = document.getElementById('restartButton');
+        const buttons = document.querySelectorAll('.buttons');
+        const player1Dropdown = document.getElementById('player1');
+        const player2Dropdown = document.getElementById('player2');
+
+        let ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 10,
+            speedX: 5,
+            speedY: 5,
+            velocity: 5,
+            dx: 5,
+            dy: 5,
+            color: '#ffeb3b' // Initial ball color
+        };
+
+        const player = {
+            x: 0,
+            y: canvas.height / 2 - 50,
+            width: 10,
+            height: 100,
+            score: 0,
+            type: 'human'
+        };
+
+        const computer = {
+            x: canvas.width - 10,
+            y: canvas.height / 2 - 50,
+            width: 10,
+            height: 100,
+            score: 0,
+            type: 'computer'
+        };
+
+        let gameOver = false;
+
+        // Flags to track key presses
+        let upPressed = false;
+        let downPressed = false;
+        let upArrowPressed = false;
+        let downArrowPressed = false;
+
+        // Event listeners for keydown and keyup events
+        document.addEventListener('keydown', function(event) {
+            if (player1Dropdown.value === 'human') {
+                if (event.code === 'KeyW') {
+                    upPressed = true; // Set flag for up key
+                } else if (event.code === 'KeyS') {
+                    downPressed = true; // Set flag for down key
+                }
+            }
+
+            if (player2Dropdown.value === 'human') {
+                if (event.code === 'ArrowUp') {
+                    upArrowPressed = true; // Set flag for up arrow key
+                } else if (event.code === 'ArrowDown') {
+                    downArrowPressed = true; // Set flag for down arrow key
+                }
+            }
+        });
+
+        document.addEventListener('keyup', function(event) {
+            if (player1Dropdown.value === 'human') {
+                if (event.code === 'KeyW') {
+                    upPressed = false; // Clear flag for up key
+                } else if (event.code === 'KeyS') {
+                    downPressed = false; // Clear flag for down key
+                }
+            }
+
+            if (player2Dropdown.value === 'human') {
+                if (event.code === 'ArrowUp') {
+                    upArrowPressed = false; // Clear flag for up arrow key
+                } else if (event.code === 'ArrowDown') {
+                    downArrowPressed = false; // Clear flag for down arrow key
+                }
+            }
+        });
+
+        function drawRect(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
+
+        function drawCircle(x, y, radius, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2, false);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawText(text, x, y, color) {
+            ctx.fillStyle = color;
+            ctx.font = '50px Comic Sans MS';
+            ctx.fillText(text, x, y);
+        }
+
+        function drawNet() {
+            for (let i = 0; i <= canvas.height; i += 15) {
+                drawRect(canvas.width / 2 - 1, i, 2, 10, '#fff');
+            }
+        }
+
+        function resetGame() {
+            player.score = 0;
+            computer.score = 0;
+            playerScoreElement.textContent = '0';
+            computerScoreElement.textContent = '0';
+            gameOver = false;
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.speedX = 5;
+            ball.speedY = 5;
+            ball.velocity = 5;
+
+            // Reset player and computer positions
+            player.y = canvas.height / 2 - 50;
+            computer.y = canvas.height / 2 - 50;
+        }
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.speedX = 0;
+            ball.speedY = 0;
+
+            // Variables for animation
+            let animationDuration = 500; // Animation duration in milliseconds
+            let animationFrames = 30; // Number of animation frames
+            let frameCount = 0;
+
+            let initialRadius = ball.radius; // Original radius of the ball
+            let targetRadius = initialRadius * 1.5; // Target radius for expansion
+
+            // Function to animate the ball's startup
+            function animateStartup() {
+                frameCount++;
+                let progress = frameCount / animationFrames;
+
+                // Flash effect: Change ball color
+                if (frameCount % 5 === 0) {
+                    ball.color = (ball.color === '#ffeb3b') ? '#f44336' : '#ffeb3b';
+                }
+
+                // Expand and shrink effect: Change ball radius
+                ball.radius = initialRadius + (targetRadius - initialRadius) * Math.abs(Math.sin(progress * Math.PI));
+
+                if (frameCount < animationFrames) {
+                    // Continue animating
+                    setTimeout(animateStartup, animationDuration / animationFrames);
+                } else {
+                    // Animation complete, start moving the ball
+                    ball.speedX = (Math.random() < 0.5 ? -1 : 1) * ball.velocity;
+                    ball.speedY = (Math.random() < 0.5 ? -1 : 1) * ball.velocity;
+
+                    // Reset ball color and radius
+                    ball.color = '#ffeb3b';
+                    ball.radius = initialRadius;
+                }
+            }
+
+            // Start the animation
+            animateStartup();
+        }
+
+
+
+        function animateBallOnCollision() {
+            // Change ball color on collision
+            ball.color = '#f44336'; // Set collision color
+
+            // Reset ball color after a short delay
+            setTimeout(() => {
+                ball.color = '#ffeb3b'; // Original ball color
+            }, 100); // 100 milliseconds delay for the animation effect
+        }
+
+        function collision(ball, playerOrComputer) {
+            playerOrComputer.top = playerOrComputer.y;
+            playerOrComputer.bottom = playerOrComputer.y + playerOrComputer.height;
+            playerOrComputer.left = playerOrComputer.x;
+            playerOrComputer.right = playerOrComputer.x + playerOrComputer.width;
+
+            ball.top = ball.y - ball.radius;
+            ball.bottom = ball.y + ball.radius;
+            ball.left = ball.x - ball.radius;
+            ball.right = ball.x + ball.radius;
+
+            return ball.right > playerOrComputer.left && ball.left < playerOrComputer.right && ball.bottom > playerOrComputer.top && ball.top < playerOrComputer.bottom;
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            ball.x += ball.speedX;
+            ball.y += ball.speedY;
+
+
+            // Simulate player 1 (computer) movement
+            if (player1Dropdown.value === 'computer') {
+                let computerLevel = 0.1;
+                player.y += (ball.y - (player.y + player.height / 2)) * computerLevel;
+
+                // Ensure player 1 (computer) stays within canvas bounds
+                if (player.y < 0) {
+                    player.y = 0;
+                } else if (player.y > canvas.height - player.height) {
+                    player.y = canvas.height - player.height;
+                }
+            }
+
+            // Simulate player 2 (computer) movement
+            if (player2Dropdown.value === 'computer') {
+                let computerLevel = 0.1;
+                computer.y += (ball.y - (computer.y + computer.height / 2)) * computerLevel;
+
+                // Ensure player 2 (computer) stays within canvas bounds
+                if (computer.y < 0) {
+                    computer.y = 0;
+                } else if (computer.y > canvas.height - computer.height) {
+                    computer.y = canvas.height - computer.height;
+                }
+            }
+
+            if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
+                ball.speedY = -ball.speedY;
+            }
+
+            let playerOrComputer = (ball.x < canvas.width / 2) ? player : computer;
+
+            if (collision(ball, playerOrComputer)) {
+                animateBallOnCollision();
+                let collidePoint = (ball.y - (playerOrComputer.y + playerOrComputer.height / 2));
+                collidePoint = collidePoint / (playerOrComputer.height / 2);
+
+                let angleRad = (Math.PI / 4) * collidePoint;
+
+                let direction = (ball.x < canvas.width / 2) ? 1 : -1;
+                ball.speedX = direction * ball.velocity * Math.cos(angleRad);
+                ball.speedY = ball.velocity * Math.sin(angleRad);
+
+                ball.velocity += 0.2;
+            }
+
+            if (ball.x - ball.radius < 0) {
+                computer.score++;
+                computerScoreElement.textContent = computer.score;
+                resetBall();
+            } else if (ball.x + ball.radius > canvas.width) {
+                player.score++;
+                playerScoreElement.textContent = player.score;
+                resetBall();
+            }
+
+            if (player.score >= 5 || computer.score >= 5) {
+                gameOver = true;
+                showGameOver(player.score >= 5 ? 'Player' : 'Computer');
+            }
+
+            if (player.score >= 5) {
+                gameOver = true;
+                showGameOver('Player');
+            } else if (computer.score >= 5) {
+                gameOver = true;
+                showGameOver('Computer');
+            }
+        }
+
+
+        function updatePlayerPosition() {
+            // Update player 1 (human) position
+            if (player1Dropdown.value === 'human') {
+                if (upPressed && player.y > 0) {
+                    player.y -= 5; // Adjust this value for speed
+                } else if (downPressed && player.y < canvas.height - player.height) {
+                    player.y += 5; // Adjust this value for speed
+                }
+            }
+
+            // Update player 2 (human) position
+            if (player2Dropdown.value === 'human') {
+                if (upArrowPressed && computer.y > 0) {
+                    computer.y -= 5; // Adjust this value for speed
+                } else if (downArrowPressed && computer.y < canvas.height - computer.height) {
+                    computer.y += 5; // Adjust this value for speed
+                }
+            }
+        }
+
+        function render() {
+            // Clear the canvas with the background color from the CSS
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the net
+            drawNet();
+
+            // Draw the paddles
+            drawRect(player.x, player.y, player.width, player.height, '#2196f3'); // Player paddle color
+            drawRect(computer.x, computer.y, computer.width, computer.height, '#f44336'); // Computer paddle color
+
+            // Draw the ball
+            drawCircle(ball.x, ball.y, ball.radius, ball.color);
+        }
+
+        function showGameOver(winner) {
+            let winnerTextContent = '';
+
+            // Determine the winner based on the provided argument
+            if (winner === 'Player') {
+                winnerTextContent = player1Dropdown.value === 'human' ? 'Blau gewinnt!' : 'Computer gewinnt!';
+            } else if (winner === 'Computer') {
+                winnerTextContent = player2Dropdown.value === 'human' ? 'Rot gewinnt!' : 'Computer gewinnt!';
+            } else {
+                winnerTextContent = 'Computer gewinnt!';
+            }
+
+            // Update the winner text content
+            winnerText.textContent = winnerTextContent;
+            gameOverPopup.classList.add('show');
+        }
+
+
+
+        function restartGame() {
+            resetGame();
+            gameOverPopup.classList.remove('show');
+            gameLoop();
+        }
+
+        // Event listener for spacebar and click to restart game
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space' && gameOver) {
+                restartGame();
+            }
+        });
+
+        canvas.addEventListener('click', function() {
+            if (gameOver) {
+                restartGame();
+            }
+        });
+
+        // Event listener for start game button
+        startButton.addEventListener('click', function() {
+            const player1Type = player1Dropdown.value;
+            const player2Type = player2Dropdown.value;
+
+            if (player1Type === 'computer') {
+                player.y = canvas.height / 2 - 50; // Reset computer position
+            }
+
+            if (player2Type === 'computer') {
+                computer.y = canvas.height / 2 - 50; // Reset computer position
+            }
+
+            menu.style.display = 'none';
+            canvas.style.display = 'block';
+            document.querySelector('.score-container').style.display = 'flex';
+            gameLoop();
+        });
+
+        // Event listener for Home button click
+        homeButton.addEventListener('click', function() {
+            window.location.href = 'index.html'; // Replace with your actual index.html file path
+        });
+
+
+
+        // Event listener for main menu button click
+        mainMenuButton.addEventListener('click', function() {
+            gameOverPopup.classList.remove('show'); // Hide popup on main menu click
+            menu.style.display = 'block'; // Show main menu
+            canvas.style.display = 'none'; // Hide canvas
+            document.querySelector('.score-container').style.display = 'none'; // Hide score container
+        });
+
+        restartButton.addEventListener('click', function() {
+            gameOverPopup.classList.remove('show'); // Hide popup on restart click
+            restartGame(); // Restart the game
+        });
+
+
+        function gameLoop() {
+            updatePlayerPosition();
+            update();
+            render();
+
+            if (!gameOver) {
+                // Request animation frame
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+    });
+
+</script>
+
+</body>
+</html>

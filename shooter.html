@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Invader Game with Survival Points and Gun Upgrade</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        #gameCanvas {
+            border: 2px solid #fff;
+            background-color: #111;
+        }
+        .overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        .overlay h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        .overlay p {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        .overlay button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #ff00ff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            outline: none;
+            margin: 5px;
+        }
+        .overlay button:hover {
+            background-color: #ee00ee;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            padding: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        .modal h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .modal p {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .modal button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #ff00ff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            outline: none;
+            margin-top: 10px;
+        }
+        .modal button:hover {
+            background-color: #ee00ee;
+        }
+        .upgrade-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .upgrade-options button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #ff00ff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            outline: none;
+            transition: background-color 0.3s ease;
+        }
+        .upgrade-options button:hover {
+            background-color: #8641c9;
+        }
+        .upgrade-options span {
+            font-weight: bold;
+            color: #e762e7;
+        }
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .close-modal:hover {
+            color: #ececec;
+            background-color: #8641c9;
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #333;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            border-radius: 10px;
+        }
+
+        .popup-content {
+            text-align: center;
+        }
+
+        .popup button {
+            margin: 5px;
+        }
+
+
+        #confirmMainMenuModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            padding: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        #rebirthModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            padding: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        #rebirthModal h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #rebirthModal p {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        #rebirthModal button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #ff00ff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            outline: none;
+            margin-top: 10px;
+        }
+        #rebirthModal button:hover {
+            background-color: #ee00ee;
+        }
+
+
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="1400" height="800"></canvas>
+
+<div id="gameOverScreen" class="overlay">
+    <h1>Game Over</h1>
+    <p>Your Score: <span id="finalScore">0</span></p>
+    <p>Total Score: <span id="totalScore">0</span></p>
+    <p>Press enter to play again</p>
+    <button id="restartButton">Restart</button>
+    <button id="upgradeButton">Upgrades</button>
+    <button id="rebirthButton">Rebirth (Cost: <span id="rebirthCostDisplay">8000</span>)</button>
+    <br>
+    <button id="mainMenu" class="menuButton">Main Menu</button>
+    <button id="clearLocalStorageButton">Reset Progress</button>
+
+    <div id="confirmationPopup" class="popup">
+        <div class="popup-content">
+            <p>Are you sure you want to clear all saved data?</p>
+            <button id="confirmClearButton">Yes</button>
+            <button id="cancelClearButton">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="upgradeModal" class="modal">
+    <button class="close-modal" id="closeUpgradeModal">&times;</button>
+    <h2>Upgrade Menu</h2>
+    <p>Total Score: <span id="upgradeTotalScore">0</span></p>
+    <div class="upgrade-options">
+        <button id="upgradeBulletSize">Upgrade Bullet Size (70 points)</button>
+        <button id="upgradeBulletSpeed">Upgrade Bullet Speed (30 points)</button>
+        <button id="upgradeShootCooldown">Upgrade Shoot Cooldown (200 points)</button>
+        <button id="upgradeScoreMultiplier">Upgrade Score Multiplier (1000 points)</button>
+    </div>
+</div>
+
+<div id="rebirthModal" class="modal">
+    <button class="close-modal" id="closeRebirthModal">&times;</button>
+    <h2>Rebirth Confirmation</h2>
+    <p>Total Score: <span id="rebirthTotalScore">0</span></p>
+    <p>Are you sure you want to perform rebirth for <span id="rebirthCost">8000</span> points?</p>
+    <button id="confirmRebirthButton">Confirm</button>
+</div>
+
+<div id="confirmMainMenuModal" class="modal">
+    <button class="close-modal" id="closeConfirmMainMenuModal">&times;</button>
+    <h2>Confirm Main Menu</h2>
+    <p>Are you sure you want to return to the main menu? Your progress will be saved.</p>
+    <button id="confirmMainMenuButton">Yes, Return to Main Menu</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScoreSpan = document.getElementById('finalScore');
+    const totalScoreSpan = document.getElementById('totalScore');
+    const upgradeButton = document.getElementById('upgradeButton');
+    const restartButton = document.getElementById('restartButton');
+    const mainMenu = document.getElementById('mainMenu');
+
+    // Player properties
+    const playerRadius = 25;
+    let playerX = canvas.width / 2;
+    let playerY = canvas.height / 2;
+    let playerSpeed = 8;
+    const playerColor = '#ff00ff';
+    let canShoot = true; // Initial player can shoot
+    let facingDirection = { x: 0, y: -1 }; // Initially facing up
+    let survivalTime = 0;
+    let survivalTimerId;
+
+    // Player movement optimization
+    let lastPlayerUpdateTime = 0;
+    const playerUpdateInterval = 1000 / 60; // 60 FPS
+
+    // Enemy properties
+    const enemyTypes = [
+        { type: 'enemy1', color: '#00ffff', speed: 6, size: 20, value: 25, health: 1 },
+        { type: 'enemy2', color: '#ff9900', speed: 5, size: 30, value: 15, health: 2 },
+        { type: 'enemy3', color: '#ff0000', speed: 3, size: 40, value: 20, health: 2 },
+        { type: 'enemy4', color: '#ffff00', speed: 2, size: 35, value: 40, health: 3 }
+    ];
+    let enemies = [];
+    let enemySpawnIntervalId;
+    const spawnInterval = 650;
+
+    // Score properties
+    let score = 0;
+    let totalScore = 0;
+
+    // Key state
+    const keys = {};
+
+    // Bullet properties
+    let bulletSpeed = 10;
+    let bullets = [];
+    let bulletSize = 7;
+    let bulletSizeUpgradeCost = 70;
+    let bulletSpeedUpgradeCost = 30;
+    let scoreMultiplier = 1;
+    let multiplierCurrent = 1;
+    let scoreMultiplierUpgradeCost = 1000; // Initial cost for score multiplier upgrade
+
+    // Player properties
+    let shootInterval = 300; // Interval between shots (in milliseconds)
+    let shootIntervalUpgradeCost = 200; // Initial cost for shooting interval upgrade
+    let lastShootTime = 0; // Timestamp of the last shot
+
+    // Constants for rebirth
+    let rebirthCount = 0;
+    let rebirthCost = 8000; // Initial rebirth cost
+    const rebirthMultiplier = 1.8; // Multiplier to increase cost each time
+
+    const MAX_ENEMIES = 100; // Adjust this value based on your game's requirements
+
+
+    // Load game state from localStorage
+    function loadGame() {
+        totalScore = parseInt(localStorage.getItem('totalScore')) || 0;
+        bulletSize = parseInt(localStorage.getItem('bulletSize')) || 7;
+        bulletSizeUpgradeCost = parseInt(localStorage.getItem('bulletSizeUpgradeCost')) || 70;
+        bulletSpeed = parseInt(localStorage.getItem('bulletSpeed')) || 10;
+        bulletSpeedUpgradeCost = parseInt(localStorage.getItem('bulletSpeedUpgradeCost')) || 30;
+        scoreMultiplier = parseFloat(localStorage.getItem('scoreMultiplier')) || 1;
+        scoreMultiplierUpgradeCost = parseInt(localStorage.getItem('scoreMultiplierUpgradeCost')) || 1000;
+        shootInterval = parseInt(localStorage.getItem('shootInterval')) || 300;
+        shootIntervalUpgradeCost = parseInt(localStorage.getItem('shootIntervalUpgradeCost')) || 200;
+        rebirthCount = parseInt(localStorage.getItem('rebirthCount')) || 1;
+        rebirthCost = parseInt(localStorage.getItem('rebirthCost')) || 8000;
+    }
+
+    // Save game state to localStorage
+    function saveGame() {
+        localStorage.setItem('totalScore', totalScore);
+        localStorage.setItem('bulletSize', bulletSize);
+        localStorage.setItem('bulletSizeUpgradeCost', bulletSizeUpgradeCost);
+        localStorage.setItem('bulletSpeed', bulletSpeed);
+        localStorage.setItem('bulletSpeedUpgradeCost', bulletSpeedUpgradeCost);
+        localStorage.setItem('scoreMultiplier', scoreMultiplier);
+        localStorage.setItem('scoreMultiplierUpgradeCost', scoreMultiplierUpgradeCost);
+        localStorage.setItem('shootInterval', shootInterval);
+        localStorage.setItem('shootIntervalUpgradeCost', shootIntervalUpgradeCost);
+        localStorage.setItem('rebirthCost', rebirthCost);
+        localStorage.setItem('rebirthCount', rebirthCount);
+    }
+
+    // Function to update game state and UI
+    let pendingUpdate = false;
+    let lastUpdateTime = 0;
+    const updateInterval = 1000 / 60; // 60 FPS
+
+    function updateGameState(currentTime) {
+        if (!pendingUpdate && currentTime - lastUpdateTime >= updateInterval) {
+            requestAnimationFrame(() => {
+                totalScoreSpan.textContent = totalScore;
+                document.getElementById("upgradeTotalScore").textContent = totalScore;
+                document.getElementById("upgradeBulletSize").textContent = `Upgrade Bullet Size (${bulletSizeUpgradeCost} points)`;
+                document.getElementById("upgradeBulletSpeed").textContent = `Upgrade Bullet Speed (${bulletSpeedUpgradeCost} points)`;
+                document.getElementById("upgradeScoreMultiplier").textContent = `Upgrade Score Multiplier (${scoreMultiplierUpgradeCost} points)`;
+                document.getElementById("upgradeShootCooldown").textContent = `Upgrade Shoot Cooldown (${shootIntervalUpgradeCost} points)`;
+
+                saveGame(); // Save current game state
+                pendingUpdate = false;
+                lastUpdateTime = currentTime;
+            });
+            pendingUpdate = true;
+        }
+    }
+
+
+    // Load game state when the page loads
+    loadGame();
+
+
+    // Event listener for rebirth button
+    const rebirthButton = document.getElementById('rebirthButton');
+    rebirthButton.addEventListener('click', () => {
+        document.getElementById('rebirthCost').textContent = rebirthCost.toFixed();
+        document.getElementById('rebirthTotalScore').textContent = totalScore; // Assuming totalScore is already defined
+        document.getElementById('rebirthModal').style.display = 'block';
+    });
+
+    // Event listener for close rebirth modal button
+    document.getElementById('closeRebirthModal').addEventListener('click', () => {
+        document.getElementById('rebirthModal').style.display = 'none';
+    });
+    // Event listener for confirm rebirth button
+    document.getElementById('confirmRebirthButton').addEventListener('click', () => {
+        if (totalScore >= rebirthCost) {
+            totalScore -= rebirthCost;
+            rebirthCost = Math.ceil(rebirthCost * rebirthMultiplier); // Increase rebirth cost
+            resetUpgrades(); // Reset all upgrade costs and values
+            totalScoreSpan.textContent = totalScore;
+            document.getElementById('upgradeTotalScore').textContent = totalScore; // Update in upgrade modal
+            document.getElementById('rebirthCost').textContent = rebirthCost.toFixed(); // Update rebirth cost display
+            document.getElementById('rebirthModal').style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            canvas.style.display = 'block';
+            scoreMultiplier = multiplierCurrent;
+            scoreMultiplier *= 2; // Double the score multiplier on rebirth
+            multiplierCurrent = scoreMultiplier;
+            rebirthCount++;
+            restartGame();
+        } else {
+            alert('Not enough total score to perform rebirth.');
+        }
+    });
+
+
+
+    // Function to reset all upgrade costs and values
+    function resetUpgrades() {
+        // Reset bullet size upgrade
+        bulletSize = 7;
+        bulletSizeUpgradeCost = 70;
+        document.getElementById("upgradeBulletSize").textContent = "Upgrade Bullet Size (" + bulletSizeUpgradeCost + " points)";
+
+        // Reset total Score
+        totalScore = 0;
+
+        // Reset bullet speed upgrade
+        bulletSpeed = 10;
+        bulletSpeedUpgradeCost = 30;
+        document.getElementById("upgradeBulletSpeed").textContent = "Upgrade Bullet Speed (" + bulletSpeedUpgradeCost + " points)";
+
+        // Reset score multiplier upgrade
+        scoreMultiplier = 1;
+        scoreMultiplierUpgradeCost = 1000;
+        document.getElementById("upgradeScoreMultiplier").textContent = "Upgrade Score Multiplier (" + scoreMultiplierUpgradeCost + " points)";
+
+        // Reset shoot interval upgrade
+        shootInterval = 300;
+        shootIntervalUpgradeCost = 200;
+        document.getElementById("upgradeShootCooldown").textContent = "Upgrade Shoot Cooldown (" + shootIntervalUpgradeCost + " points)";
+    }
+
+
+    // Event listener for main menu button
+    mainMenu.addEventListener('click', function() {
+        document.getElementById('confirmMainMenuModal').style.display = 'block';
+    });
+
+    // Event listener for close confirmation modal button
+    document.getElementById('closeConfirmMainMenuModal').addEventListener('click', () => {
+        document.getElementById('confirmMainMenuModal').style.display = 'none';
+    });
+
+    // Event listener for confirming main menu navigation
+    document.getElementById('confirmMainMenuButton').addEventListener('click', () => {
+        window.location.href = 'index.html'; // Redirect to the main menu page
+    });
+
+    // Initialize enemies
+    function initEnemies() {
+        if (enemySpawnIntervalId) {
+            clearInterval(enemySpawnIntervalId);
+        }
+        enemies = [];
+        enemySpawnIntervalId = setInterval(spawnEnemy, spawnInterval);
+    }
+
+
+    // Spawn enemy
+    function spawnEnemy() {
+        if (enemies.length < MAX_ENEMIES) {
+            const randomValue = Math.random(); // Generate a random value between 0 and 1
+
+            // Adjust the probabilities for different enemy types
+            let enemyType;
+            if (randomValue < 0.3) {
+                enemyType = enemyTypes[0]; // 30% chance for enemy1
+            } else if (randomValue < 0.6) {
+                enemyType = enemyTypes[1]; // 30% chance for enemy2
+            } else if (randomValue < 0.95) {
+                enemyType = enemyTypes[2]; // 35% chance for enemy3
+            } else {
+                enemyType = enemyTypes[3]; // 5% chance for enemy4
+            }
+
+            const entrySide = Math.floor(Math.random() * 4);  // 0: top, 1: right, 2: bottom, 3: left
+            let x, y, dx, dy;
+
+            switch (entrySide) {
+                case 0: // Top
+                    x = Math.random() * (canvas.width - enemyType.size * 2) + enemyType.size;
+                    y = -enemyType.size;
+                    dx = 0;
+                    dy = enemyType.speed;
+                    break;
+                case 1: // Right
+                    x = canvas.width + enemyType.size;
+                    y = Math.random() * (canvas.height - enemyType.size * 2) + enemyType.size;
+                    dx = -enemyType.speed;
+                    dy = 0;
+                    break;
+                case 2: // Bottom
+                    x = Math.random() * (canvas.width - enemyType.size * 2) + enemyType.size;
+                    y = canvas.height + enemyType.size;
+                    dx = 0;
+                    dy = -enemyType.speed;
+                    break;
+                case 3: // Left
+                    x = -enemyType.size;
+                    y = Math.random() * (canvas.height - enemyType.size * 2) + enemyType.size;
+                    dx = enemyType.speed;
+                    dy = 0;
+                    break;
+            }
+
+
+            enemies.push({
+                x: x,
+                y: y,
+                dx: dx,
+                dy: dy,
+                type: enemyType.type,
+                color: enemyType.color,
+                size: enemyType.size,
+                speed: enemyType.speed,
+                value: enemyType.value,
+                health: enemyType.health,
+                currentHealth: enemyType.health, // Initialize current health
+                shootTimer: 0
+            });
+        }
+    }
+
+    // Draw player
+    function drawPlayer() {
+        ctx.fillStyle = playerColor;
+        ctx.beginPath();
+        ctx.arc(playerX, playerY, playerRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.closePath();
+
+        // Draw facing direction triangle
+        const triangleSize = 10;
+        ctx.fillStyle = canShoot ? '#ffffff' : 'black';
+        ctx.beginPath();
+        ctx.moveTo(playerX + facingDirection.x * (playerRadius + triangleSize), playerY + facingDirection.y * (playerRadius + triangleSize));
+        ctx.lineTo(playerX + facingDirection.x * playerRadius - facingDirection.y * triangleSize, playerY + facingDirection.y * playerRadius + facingDirection.x * triangleSize);
+        ctx.lineTo(playerX + facingDirection.x * playerRadius + facingDirection.y * triangleSize, playerY + facingDirection.y * playerRadius - facingDirection.x * triangleSize);
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    // Draw bullets
+    function drawBullets() {
+        ctx.fillStyle = '#ffffff';
+        bullets.forEach(bullet => {
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, bullet.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+        });
+    }
+
+    // Draw enemies function - Include health text inside enemy circles
+    function drawEnemies() {
+        enemies.forEach(enemy => {
+            ctx.fillStyle = enemy.color;
+            ctx.beginPath();
+            ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+
+            // Draw health points
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 13px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(enemy.currentHealth, enemy.x, enemy.y + 5); // Adjust position for text
+        });
+    }
+
+    // Draw score
+    function drawScore() {
+        ctx.fillStyle = '#fff';
+        ctx.font = '24px Arial';
+        const scoreText = 'Score: ' + score;
+        const textWidth = ctx.measureText(scoreText).width;
+        const x = canvas.width - textWidth - 10; // Adjust position from right edge
+        const y = 30; // Fixed from top
+
+        ctx.fillText(scoreText, x, y);
+    }
+
+    // Update game state
+    function update(currentTime) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Move player
+        const upPressed = keys['ArrowUp'] || keys['w'];
+        const downPressed = keys['ArrowDown'] || keys['s'];
+        const leftPressed = keys['ArrowLeft'] || keys['a'];
+        const rightPressed = keys['ArrowRight'] || keys['d'];
+        if (
+            !(upPressed && downPressed) &&
+            !(leftPressed && rightPressed)
+        ) {
+            const deltaX = rightPressed ? 1 : (leftPressed ? -1 : 0);
+            const deltaY = downPressed ? 1 : (upPressed ? -1 : 0);
+
+            const newX = playerX + deltaX * playerSpeed;
+            const newY = playerY + deltaY * playerSpeed;
+
+            // Check boundaries (adjust this according to your game)
+            if (newX >= 0 && newX <= canvas.width - playerRadius) {
+                playerX = newX;
+            }
+            if (newY >= 0 && newY <= canvas.height - playerRadius) {
+                playerY = newY;
+            }
+
+            // Update facing direction
+            if (deltaX !== 0 || deltaY !== 0) {
+                facingDirection = { x: deltaX, y: deltaY };
+            }
+        }
+
+        // Ensure player stays within canvas bounds
+        playerX = Math.max(playerRadius, Math.min(canvas.width - playerRadius, playerX));
+        playerY = Math.max(playerRadius, Math.min(canvas.height - playerRadius, playerY));
+
+
+
+        updateGameState(currentTime);
+
+
+
+        function movePlayer(deltaX, deltaY, currentTime) {
+
+                // Calculate new player position
+                let newX = playerX + deltaX * playerSpeed;
+                let newY = playerY + deltaY * playerSpeed;
+
+
+
+                // Check boundaries (adjust this according to your game)
+                if (newX >= 0 && newX <= canvas.width - playerRadius) {
+                    playerX = newX;
+                }
+                if (newY >= 0 && newY <= canvas.height - playerRadius) {
+                    playerY = newY;
+                }
+
+                // Update facing direction
+                if (deltaX !== 0 || deltaY !== 0) {
+                    facingDirection = { x: deltaX, y: deltaY };
+                }
+
+                lastPlayerUpdateTime = currentTime;
+            }
+
+
+        // Ensure player stays within canvas bounds
+        playerX = Math.max(playerRadius, Math.min(canvas.width - playerRadius, playerX));
+        playerY = Math.max(playerRadius, Math.min(canvas.height - playerRadius, playerY));
+
+        if (Date.now() - lastShootTime > shootInterval) {
+            // Fire a bullet
+            fireBullet();
+            updateBullets()
+            lastShootTime = Date.now(); // Update last shoot time
+        }
+
+        // Update bullets
+        bullets.forEach((bullet, index) => {
+            bullet.x += bullet.dx;
+            bullet.y += bullet.dy;
+            if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+                bullets.splice(index, 1);
+            }
+        });
+
+// Remove enemies that have gone off-screen
+        enemies = enemies.filter(enemy => {
+            return !(enemy.x > canvas.width + enemy.size || enemy.x < -enemy.size || enemy.y > canvas.height + enemy.size || enemy.y < -enemy.size);
+        });
+
+
+        // Draw player, bullets, enemies, and score
+        drawBullets();
+        drawPlayer();
+        drawEnemies();
+        drawScore();
+
+        // Move enemies
+        enemies.forEach((enemy, index) => {
+            enemy.x += enemy.dx;
+            enemy.y += enemy.dy;
+
+            // Check collision with player
+            if (collision(playerX, playerY, playerRadius, enemy.x, enemy.y, enemy.size)) {
+                gameOver();
+            }
+
+            // Update shoot timer for enemy
+            if (enemy.type === 'enemy4') {
+                enemy.shootTimer++;
+                if (enemy.shootTimer >= 180) { // Shoot every 2 seconds (assuming 60 FPS)
+                    enemy.shootTimer = 0;
+                    // Fire bullets in all directions
+                    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+                        bullets.push({
+                            x: enemy.x,
+                            y: enemy.y,
+                            dx: Math.cos(angle) * bulletSpeed,
+                            dy: Math.sin(angle) * bulletSpeed,
+                            size: 5, // Small bullet size
+                            type: 'enemy'
+                        });
+                    }
+                }
+            }
+
+            // Spatial hash parameters
+            const CELL_SIZE = 100; // Adjust according to your game's needs
+
+// Spatial hash map
+            let spatialHash = new Map();
+
+// Efficient collision detection function for circular collisions
+            function collision(x1, y1, r1, x2, y2, r2) {
+                let dx = x2 - x1;
+                let dy = y2 - y1;
+                let distanceSquared = dx * dx + dy * dy;
+                let radiusSquared = (r1 + r2) * (r1 + r2);
+                return distanceSquared <= radiusSquared;
+            }
+
+// Populate spatial hash with enemies
+            enemies.forEach((enemy, index) => {
+                let cellX = Math.floor(enemy.x / CELL_SIZE);
+                let cellY = Math.floor(enemy.y / CELL_SIZE);
+                let key = `${cellX},${cellY}`;
+
+                if (!spatialHash.has(key)) {
+                    spatialHash.set(key, []);
+                }
+                spatialHash.get(key).push(index);
+            });
+
+// Arrays to store indices of bullets and enemies to remove
+            let bulletsToRemove = new Set();
+            let enemiesToRemove = new Set();
+
+// Check collision with player bullets (detecting one collision at a time)
+            bullets.forEach((bullet, bIndex) => {
+                if (bullet.type === 'player') {
+                    let collided = false; // Flag to track if bullet has collided with an enemy
+
+                    // Calculate spatial hash cells to check based on bullet's position and size
+                    let startCellX = Math.floor((bullet.x - bullet.size) / CELL_SIZE);
+                    let endCellX = Math.floor((bullet.x + bullet.size) / CELL_SIZE);
+                    let startCellY = Math.floor((bullet.y - bullet.size) / CELL_SIZE);
+                    let endCellY = Math.floor((bullet.y + bullet.size) / CELL_SIZE);
+
+                    // Iterate through potential cells in spatial hash
+                    for (let cellX = startCellX; cellX <= endCellX; cellX++) {
+                        for (let cellY = startCellY; cellY <= endCellY; cellY++) {
+                            let key = `${cellX},${cellY}`;
+
+                            if (spatialHash.has(key)) {
+                                // Get list of enemy indices in current cell
+                                let cellEnemies = spatialHash.get(key);
+
+                                // Check each enemy in current cell
+                                cellEnemies.forEach(eIndex => {
+                                    let enemy = enemies[eIndex];
+
+                                    // Perform collision check
+                                    if (!collided && collision(bullet.x, bullet.y, bullet.size, enemy.x, enemy.y, enemy.size)) {
+                                        // Player bullet hit enemy
+                                        bulletsToRemove.add(bIndex); // Mark bullet for removal
+                                        enemy.currentHealth--; // Decrease current health
+
+                                        if (enemy.currentHealth <= 0) {
+                                            enemiesToRemove.add(eIndex); // Mark enemy for removal
+                                            score += enemy.value; // Increase score
+                                        }
+
+                                        collided = true; // Set collided flag to true
+                                    }
+                                });
+
+                                if (collided) {
+                                    break; // Exit the loop if collision detected
+                                }
+                            }
+                        }
+                        if (collided) {
+                            break; // Exit the outer loop if collision detected
+                        }
+                    }
+                }
+            });
+
+// Remove bullets marked for removal
+            bulletsToRemove.forEach(bIndex => bullets.splice(bIndex, 1));
+            bulletsToRemove.clear();
+
+// Remove enemies marked for removal
+            enemiesToRemove.forEach(eIndex => enemies.splice(eIndex, 1));
+            enemiesToRemove.clear();
+
+// Update spatial hash after removing enemies
+            spatialHash.clear(); // Clear existing spatial hash
+            enemies.forEach((enemy, index) => {
+                let cellX = Math.floor(enemy.x / CELL_SIZE);
+                let cellY = Math.floor(enemy.y / CELL_SIZE);
+                let key = `${cellX},${cellY}`;
+
+                if (!spatialHash.has(key)) {
+                    spatialHash.set(key, []);
+                }
+                spatialHash.get(key).push(index);
+            });
+
+// Remove bullets marked for removal
+            bulletsToRemove.forEach(bIndex => bullets.splice(bIndex, 1));
+            bulletsToRemove.clear();
+
+// Remove enemies marked for removal
+            enemiesToRemove.forEach(eIndex => enemies.splice(eIndex, 1));
+            enemiesToRemove.clear();
+
+// Update spatial hash after removing enemies
+            spatialHash.clear(); // Clear existing spatial hash
+            enemies.forEach((enemy, index) => {
+                let cellX = Math.floor(enemy.x / CELL_SIZE);
+                let cellY = Math.floor(enemy.y / CELL_SIZE);
+                let key = `${cellX},${cellY}`;
+
+                if (!spatialHash.has(key)) {
+                    spatialHash.set(key, []);
+                }
+                spatialHash.get(key).push(index);
+            });
+
+
+// Remove marked bullets from bullets array
+            bulletsToRemove.forEach(index => bullets.splice(index, 1));
+
+// Remove marked enemies from enemies array
+            enemiesToRemove.forEach(index => enemies.splice(index, 1));
+
+// Clear spatial hash for next iteration
+            spatialHash.clear();
+
+            // Event listeners for keydown and keyup events
+            document.addEventListener('keydown', handleKeydown);
+            document.addEventListener('keyup', handleKeyup);
+
+            function handleKeydown(event) {
+                keys[event.key] = true;
+                if(event.key === '§')
+                {
+                    score += 1000000000000;
+                }
+            }
+
+            function handleKeyup(event) {
+                keys[event.key] = false;
+            }
+
+
+            // Check collision with enemy bullets (for player)
+            bullets.forEach((bullet, bIndex) => {
+                if (bullet.type === 'enemy' && collision(bullet.x, bullet.y, bullet.size, playerX, playerY, playerRadius)) {
+                    // Enemy bullet hit player
+                    bullets.splice(bIndex, 1);
+                    gameOver();
+                }
+            });
+
+            // Remove enemies that have gone off-screen
+            if (enemy.x > canvas.width + enemy.size || enemy.x < -enemy.size || enemy.y > canvas.height + enemy.size || enemy.y < -enemy.size) {
+                enemies.splice(index, 1);
+            }
+        });
+
+        // Event listener for clearing localStorage button
+        document.getElementById('clearLocalStorageButton').addEventListener('click', () => {
+                document.getElementById('confirmationPopup').style.display = 'block';
+
+        });
+
+        // Event listener for confirming clear localStorage
+        document.getElementById('confirmClearButton').addEventListener('click', () => {
+            const keysToRemove = ['totalScore', 'bulletSize', 'bulletSizeUpgradeCost', 'bulletSpeed', 'bulletSpeedUpgradeCost', 'scoreMultiplier', 'scoreMultiplierUpgradeCost', 'shootInterval', 'shootIntervalUpgradeCost', 'rebirthCost', 'rebirthCount'];
+            // Clear localStorage and close the popup
+            // Remove items from localStorage
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+            });
+            document.getElementById('confirmationPopup').style.display = 'none';
+            // Optionally reset game state or update UI
+            resetGame(); // Example function to reset game state
+        });
+
+        // Event listener for cancelling clear localStorage
+        document.getElementById('cancelClearButton').addEventListener('click', () => {
+            // Close the popup without clearing localStorage
+            document.getElementById('confirmationPopup').style.display = 'none';
+        });
+
+        // Function to reset game state (example)
+        function resetGame() {
+            score = 0;
+            rebirthCost = 8000;
+            totalScore = 0;
+            bulletSize = 7;
+            bulletSizeUpgradeCost = 70;
+            bulletSpeed = 10;
+            bulletSpeedUpgradeCost = 30;
+            scoreMultiplier = 1;
+            scoreMultiplierUpgradeCost = 1000;
+            shootInterval = 300;
+            shootIntervalUpgradeCost = 200;
+
+            // Update UI
+            totalScoreSpan.textContent = totalScore;
+            finalScoreSpan.textContent = score;
+            document.getElementById("upgradeTotalScore").textContent = totalScore;
+            document.getElementById("upgradeBulletSize").textContent = `Upgrade Bullet Size (${bulletSizeUpgradeCost} points)`;
+            document.getElementById("upgradeBulletSpeed").textContent = `Upgrade Bullet Speed (${bulletSpeedUpgradeCost} points)`;
+            document.getElementById("upgradeScoreMultiplier").textContent = `Upgrade Score Multiplier (${scoreMultiplierUpgradeCost} points)`;
+            document.getElementById("upgradeShootCooldown").textContent = `Upgrade Shoot Cooldown (${shootIntervalUpgradeCost} points)`;
+            document.getElementById("rebirthButton").textContent = `Rebirth (Cost: ${rebirthCost})`;
+
+            saveGame(); // Save the reset game state
+        }
+
+        // Increment survival time and apply score multiplier
+        survivalTime += 1; // Increase by 1 second each frame (assuming 60 FPS)
+        if ((survivalTime % 15) === 0) {
+            score += Math.floor((scoreMultiplier)); // Increase score with multiplier
+        }
+        if (!gameOverFlag) {
+            requestAnimationFrame(update);
+        } else {
+
+        }
+    }
+
+
+
+    // Game over
+    let gameOverFlag = false;
+    function gameOver() {
+        clearInterval(enemySpawnIntervalId); // Stop spawning enemies
+        clearInterval(survivalTimerId); // Stop survival timer
+        gameOverFlag = true;
+        totalScore += score; // Add current score to total score
+        finalScoreSpan.textContent = score; // Display the final score in game over screen
+        totalScoreSpan.textContent = totalScore; // Update total score display
+        updateGameState(Date.now());
+        gameOverScreen.style.display = 'block'; // Show game over screen
+        canvas.style.display = 'none'; // Hide the game canvas
+    }
+
+    // Restart game function
+    function restartGame() {
+        // Reset player position
+        playerX = canvas.width / 2;
+        playerY = canvas.height / 2;
+        // Reset score
+        score = 0;
+        survivalTime = 0;
+        gameOverFlag = false;
+        // Clear enemies and bullets
+        enemies = [];
+        bullets = [];
+        // Restart spawning enemies
+        initEnemies();
+        // Restart survival timer
+        survivalTimerId = setInterval(() => {
+            survivalTime++;
+            if ((survivalTime % 15) === 0) {
+                score += Math.floor(scoreMultiplier);
+            }
+        }, 1000);
+        // Hide game over screen and show canvas
+        gameOverScreen.style.display = 'none';
+        canvas.style.display = 'block';
+        // Start the game loop
+        requestAnimationFrame(update);
+    }
+
+    // Event listener for restart button
+    restartButton.addEventListener('click', restartGame);
+
+    // Upgrade bullet size
+    function upgradeBulletSize() {
+        if (totalScore >= bulletSizeUpgradeCost) {
+            totalScore -= bulletSizeUpgradeCost;
+            bulletSizeUpgradeCost = Math.ceil(bulletSizeUpgradeCost * 1.2); // Increase upgrade cost
+            bulletSize += 2; // Increase bullet size by 2
+            totalScoreSpan.textContent = totalScore;
+            document.getElementById("upgradeBulletSize").textContent = "Upgrade Bullet Size (" + bulletSizeUpgradeCost + " points)";
+            document.getElementById("upgradeTotalScore").textContent = totalScore; // Update in upgrade modal
+        }
+    }
+
+    // Upgrade bullet speed
+    function upgradeBulletSpeed() {
+        if (totalScore >= bulletSpeedUpgradeCost) {
+            totalScore -= bulletSpeedUpgradeCost;
+            bulletSpeedUpgradeCost = Math.ceil(bulletSpeedUpgradeCost * 1.2); // Increase upgrade cost
+            bulletSpeed += 2; // Increase bullet speed by 2
+            totalScoreSpan.textContent = totalScore;
+            document.getElementById("upgradeBulletSpeed").textContent = "Upgrade Bullet Speed (" + bulletSpeedUpgradeCost + " points)";
+            document.getElementById("upgradeTotalScore").textContent = totalScore; // Update in upgrade modal
+        }
+    }
+
+    // Upgrade score multiplier
+    function upgradeScoreMultiplier() {
+        if (totalScore >= scoreMultiplierUpgradeCost) {
+            totalScore -= scoreMultiplierUpgradeCost;
+            scoreMultiplierUpgradeCost = Math.ceil(scoreMultiplierUpgradeCost * 1.3); // Increase upgrade cost
+            scoreMultiplier += 0.3; // Increase score multiplier by 1
+            totalScoreSpan.textContent = totalScore;
+            document.getElementById("upgradeScoreMultiplier").textContent = "Upgrade Score Multiplier (" + scoreMultiplierUpgradeCost + " points)";
+            document.getElementById("upgradeTotalScore").textContent = totalScore; // Update in upgrade modal
+        }
+    }
+
+    // Upgrade shooting cooldown
+    function upgradeShootCooldown() {
+        if (totalScore >= shootIntervalUpgradeCost) {
+            totalScore -= shootIntervalUpgradeCost;
+            shootIntervalUpgradeCost = Math.ceil(shootIntervalUpgradeCost * 1.2); // Increase upgrade cost
+            shootInterval = Math.max(10, shootInterval - 30); // Reduce shoot interval with a minimum limit of 50ms
+            totalScoreSpan.textContent = totalScore;
+            document.getElementById("upgradeShootCooldown").textContent = "Upgrade Shoot Cooldown (" + shootIntervalUpgradeCost + " points)";
+            document.getElementById("upgradeTotalScore").textContent = totalScore; // Update in upgrade modal
+        }
+    }
+
+    function fireBullet() {
+        // Calculate the normalized direction vector based on facingDirection
+        const directionMagnitude = Math.sqrt(facingDirection.x * facingDirection.x + facingDirection.y * facingDirection.y);
+        const dx = (bulletSpeed / directionMagnitude) * facingDirection.x; // Adjust bullet speed based on your game
+        const dy = (bulletSpeed / directionMagnitude) * facingDirection.y; // Adjust bullet speed based on your game
+
+        // Create bullet object
+        const bullet = {
+            x: playerX,
+            y: playerY,
+            dx: dx,
+            dy: dy,
+            size: bulletSize,
+            type: 'player'
+        };
+
+        bullets.push(bullet);
+    }
+
+    function updateBullets() {
+        // Iterate through bullets and update their positions
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            const bullet = bullets[i];
+
+            // Update bullet position
+            bullet.x += bullet.dx;
+            bullet.y += bullet.dy;
+
+            // Check if bullet is out of bounds
+            if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+                // Remove bullet from array
+                bullets.splice(i, 1);
+            }
+        }
+    }
+
+    // Event listeners for upgrade buttons
+    document.getElementById('upgradeBulletSize').addEventListener('click', upgradeBulletSize);
+    document.getElementById('upgradeBulletSpeed').addEventListener('click', upgradeBulletSpeed);
+    document.getElementById('upgradeScoreMultiplier').addEventListener('click', upgradeScoreMultiplier);
+    document.getElementById('upgradeShootCooldown').addEventListener('click', upgradeShootCooldown); // New event listener
+
+
+
+    // Handle upgrades button click
+    upgradeButton.addEventListener('click', () => {
+        document.getElementById('upgradeModal').style.display = 'block';
+        document.getElementById('upgradeTotalScore').textContent = totalScore;
+    });
+
+    // Close upgrade modal
+    document.getElementById('closeUpgradeModal').addEventListener('click', () => {
+        document.getElementById('upgradeModal').style.display = 'none';
+    });
+
+    // Initialize game
+    function startGame() {
+        initEnemies();
+        survivalTimerId = setInterval(() => {
+            survivalTime++;
+        }, 1000); // Update survival time every second
+        update();
+    }
+
+    // Start the game
+    startGame();
+</script>
+</body>
+</html>

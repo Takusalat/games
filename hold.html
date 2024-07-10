@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hold Click Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            color: #333; /* Default font color */
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            text-align: center;
+            width: 600px; /* Fixed width for the container */
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
+            box-sizing: border-box; /* Ensures padding and border are included in width */
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        button {
+            padding: 20px 40px;
+            margin-top: 20px;
+            cursor: pointer;
+            font-size: 1.5em;
+            color: #fff;
+            border: none;
+            border-radius: 1rem;
+            transition: 0.1s;
+            background: #100720;
+            position: relative;
+        }
+
+        button::after {
+            content: '';
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient( circle farthest-corner at 10% 20%,  rgba(255,94,247,1) 17.8%, rgba(2,245,255,1) 100.2% );
+            filter: blur(15px);
+            z-index: -1;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        button:active {
+            transform: scale(0.9) rotate(3deg);
+            background: radial-gradient( circle farthest-corner at 10% 20%,  rgba(255,94,247,1) 17.8%, rgba(2,245,255,1) 100.2% );
+            transition: 0.5s;
+        }
+
+        button:hover {
+            background: radial-gradient( circle farthest-corner at 20% 30%,  rgba(255,94,247,1) 17.8%, rgba(2,245,255,1) 100.2% );
+        }
+
+        #timer {
+            font-size: 1.3em;
+        }
+
+        #highscoreValue {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        /* Button for Redirect */
+        .redirect-button {
+            position: fixed;
+            top: 10px;
+            left: 20px;
+            background-color: transparent;
+            color: #1D1F2C; /* Button text color */
+            border: #8641c9;
+            padding: 12px 25px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 1em;
+            z-index: 1000;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .redirect-button:hover {
+            background-color: rgba(0, 123, 255, 0.1); /* Light blue with transparency */
+        }
+    </style>
+</head>
+<body>
+<button class="redirect-button" onclick="redirectToIndex()">Home</button>
+<div class="container">
+    <h1>Hold Click Game</h1>
+    <button id="startButton">Hold that</button>
+    <p id="timer">Hold down the mouse button as long as you can!</p>
+    <p>Highscore: <span id="highscoreValue">0.00</span> seconds</p>
+</div>
+
+<script>
+    let startTime, endTime, timerInterval;
+    let holding = false;
+    let highscore = parseFloat(localStorage.getItem('highscore')) || 0;
+
+    const startButton = document.getElementById('startButton');
+    const timerDisplay = document.getElementById('timer');
+    const highscoreDisplay = document.getElementById('highscoreValue');
+
+    // Display initial highscore
+    displayHighscore();
+
+    startButton.addEventListener('mousedown', startTimer);
+    startButton.addEventListener('mouseup', endTimer);
+    startButton.addEventListener('mouseleave', endTimer);
+
+    function startTimer() {
+        holding = true;
+        startTime = new Date();
+        updateTimer(); // Update timer display immediately on mousedown
+        timerInterval = setInterval(updateTimer, 100); // Update timer display every 100ms
+    }
+
+    function endTimer() {
+        if (holding) {
+            clearInterval(timerInterval); // Stop updating timer display
+            endTime = new Date();
+            holding = false;
+            const elapsedTime = (endTime - startTime) / 1000; // in seconds
+            timerDisplay.textContent = `You held for ${elapsedTime.toFixed(2)} seconds`;
+
+            if (elapsedTime > highscore) {
+                highscore = elapsedTime;
+                localStorage.setItem('highscore', highscore.toFixed(2));
+                displayHighscore(); // Update highscore display
+            }
+        }
+    }
+
+    function updateTimer() {
+        if (holding) {
+            const currentTime = new Date();
+            const elapsedTime = (currentTime - startTime) / 1000; // in seconds
+            timerDisplay.textContent = `Current time: ${elapsedTime.toFixed(2)} seconds`;
+        }
+    }
+
+    function displayHighscore() {
+        highscore = parseFloat(localStorage.getItem('highscore')) || 0;
+        highscoreDisplay.textContent = highscore.toFixed(2);
+    }
+
+    function redirectToIndex() {
+        window.location.href = 'index.html';
+    }
+</script>
+</body>
+</html>
