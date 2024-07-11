@@ -277,9 +277,8 @@
     let survivalTime = 0;
     let survivalTimerId;
 
-    // Player movement optimization
-    let lastPlayerUpdateTime = 0;
-    const playerUpdateInterval = 1000 / 60; // 60 FPS
+
+
 
     // Enemy properties
     const enemyTypes = [
@@ -301,6 +300,7 @@
 
     // Bullet properties
     let bulletSpeed = 10;
+    let bulletSpeedEnemy = 10;
     let bullets = [];
     let bulletSize = 7;
     let bulletSizeUpgradeCost = 70;
@@ -493,24 +493,24 @@
                     x = Math.random() * (canvas.width - enemyType.size * 2) + enemyType.size;
                     y = -enemyType.size;
                     dx = 0;
-                    dy = enemyType.speed;
+                    dy = enemyType.speed; // Apply difficulty multiplier to enemy speed
                     break;
                 case 1: // Right
                     x = canvas.width + enemyType.size;
                     y = Math.random() * (canvas.height - enemyType.size * 2) + enemyType.size;
-                    dx = -enemyType.speed;
+                    dx = -enemyType.speed; // Apply difficulty multiplier to enemy speed
                     dy = 0;
                     break;
                 case 2: // Bottom
                     x = Math.random() * (canvas.width - enemyType.size * 2) + enemyType.size;
                     y = canvas.height + enemyType.size;
                     dx = 0;
-                    dy = -enemyType.speed;
+                    dy = -enemyType.speed; // Apply difficulty multiplier to enemy speed
                     break;
                 case 3: // Left
                     x = -enemyType.size;
                     y = Math.random() * (canvas.height - enemyType.size * 2) + enemyType.size;
-                    dx = enemyType.speed;
+                    dx = enemyType.speed; // Apply difficulty multiplier to enemy speed
                     dy = 0;
                     break;
             }
@@ -524,10 +524,10 @@
                 type: enemyType.type,
                 color: enemyType.color,
                 size: enemyType.size,
-                speed: enemyType.speed,
+                speed: enemyType.speed, // Apply difficulty multiplier to enemy speed
                 value: enemyType.value,
-                health: enemyType.health,
-                currentHealth: enemyType.health, // Initialize current health
+                health: enemyType.health, // Apply difficulty multiplier to enemy health
+                currentHealth: enemyType.health, // Apply difficulty multiplier to enemy health
                 shootTimer: 0
             });
         }
@@ -591,36 +591,36 @@
 
         ctx.fillText(scoreText, x, y);
     }
+    document.addEventListener('keydown', (e) => keys[e.key] = true);
+    document.addEventListener('keyup', (e) => keys[e.key] = false);
+
+    function movePlayer() {
+        if (keys['w'] && playerY > 0) playerY -= playerSpeed;
+        if (keys['s'] && playerY < canvas.height - playerRadius) playerY += playerSpeed;
+        if (keys['a'] && playerX > 0) playerX -= playerSpeed;
+        if (keys['d'] && playerX < canvas.width - playerRadius) playerX += playerSpeed;
+        if (keys['§'])score += 100;
+    }
 
     // Update game state
     function update(currentTime) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Move player
-        const upPressed = keys['ArrowUp'] || keys['w'];
-        const downPressed = keys['ArrowDown'] || keys['s'];
-        const leftPressed = keys['ArrowLeft'] || keys['a'];
-        const rightPressed = keys['ArrowRight'] || keys['d'];
+        const upPressed = keys['w'];
+        const downPressed = keys['s'];
+        const leftPressed = keys['a'];
+        const rightPressed = keys['d'];
         if (
             !(upPressed && downPressed) &&
             !(leftPressed && rightPressed)
         ) {
             const deltaX = rightPressed ? 1 : (leftPressed ? -1 : 0);
             const deltaY = downPressed ? 1 : (upPressed ? -1 : 0);
+            movePlayer();
 
-            const newX = playerX + deltaX * playerSpeed;
-            const newY = playerY + deltaY * playerSpeed;
-
-            // Check boundaries (adjust this according to your game)
-            if (newX >= 0 && newX <= canvas.width - playerRadius) {
-                playerX = newX;
-            }
-            if (newY >= 0 && newY <= canvas.height - playerRadius) {
-                playerY = newY;
-            }
-
-            // Update facing direction
-            if (deltaX !== 0 || deltaY !== 0) {
+            // Update facing direction only for non-diagonal movement
+            if ((deltaX !== 0 && deltaY === 0) || (deltaX === 0 && deltaY !== 0)) {
                 facingDirection = { x: deltaX, y: deltaY };
             }
         }
@@ -630,39 +630,7 @@
         playerY = Math.max(playerRadius, Math.min(canvas.height - playerRadius, playerY));
 
 
-
         updateGameState(currentTime);
-
-
-
-        function movePlayer(deltaX, deltaY, currentTime) {
-
-                // Calculate new player position
-                let newX = playerX + deltaX * playerSpeed;
-                let newY = playerY + deltaY * playerSpeed;
-
-
-
-                // Check boundaries (adjust this according to your game)
-                if (newX >= 0 && newX <= canvas.width - playerRadius) {
-                    playerX = newX;
-                }
-                if (newY >= 0 && newY <= canvas.height - playerRadius) {
-                    playerY = newY;
-                }
-
-                // Update facing direction
-                if (deltaX !== 0 || deltaY !== 0) {
-                    facingDirection = { x: deltaX, y: deltaY };
-                }
-
-                lastPlayerUpdateTime = currentTime;
-            }
-
-
-        // Ensure player stays within canvas bounds
-        playerX = Math.max(playerRadius, Math.min(canvas.width - playerRadius, playerX));
-        playerY = Math.max(playerRadius, Math.min(canvas.height - playerRadius, playerY));
 
         if (Date.now() - lastShootTime > shootInterval) {
             // Fire a bullet
@@ -712,8 +680,8 @@
                         bullets.push({
                             x: enemy.x,
                             y: enemy.y,
-                            dx: Math.cos(angle) * bulletSpeed,
-                            dy: Math.sin(angle) * bulletSpeed,
+                            dx: Math.cos(angle) * bulletSpeedEnemy,
+                            dy: Math.sin(angle) * bulletSpeedEnemy,
                             size: 5, // Small bullet size
                             type: 'enemy'
                         });
@@ -752,11 +720,9 @@
             let bulletsToRemove = new Set();
             let enemiesToRemove = new Set();
 
-// Check collision with player bullets (detecting one collision at a time)
+// Check collision with player bullets (detecting multiple collisions)
             bullets.forEach((bullet, bIndex) => {
                 if (bullet.type === 'player') {
-                    let collided = false; // Flag to track if bullet has collided with an enemy
-
                     // Calculate spatial hash cells to check based on bullet's position and size
                     let startCellX = Math.floor((bullet.x - bullet.size) / CELL_SIZE);
                     let endCellX = Math.floor((bullet.x + bullet.size) / CELL_SIZE);
@@ -777,9 +743,8 @@
                                     let enemy = enemies[eIndex];
 
                                     // Perform collision check
-                                    if (!collided && collision(bullet.x, bullet.y, bullet.size, enemy.x, enemy.y, enemy.size)) {
+                                    if (collision(bullet.x, bullet.y, bullet.size, enemy.x, enemy.y, enemy.size)) {
                                         // Player bullet hit enemy
-                                        bulletsToRemove.add(bIndex); // Mark bullet for removal
                                         enemy.currentHealth--; // Decrease current health
 
                                         if (enemy.currentHealth <= 0) {
@@ -787,17 +752,10 @@
                                             score += enemy.value; // Increase score
                                         }
 
-                                        collided = true; // Set collided flag to true
+                                        bulletsToRemove.add(bIndex); // Mark bullet for removal
                                     }
                                 });
-
-                                if (collided) {
-                                    break; // Exit the loop if collision detected
-                                }
                             }
-                        }
-                        if (collided) {
-                            break; // Exit the outer loop if collision detected
                         }
                     }
                 }
@@ -808,7 +766,13 @@
             bulletsToRemove.clear();
 
 // Remove enemies marked for removal
-            enemiesToRemove.forEach(eIndex => enemies.splice(eIndex, 1));
+            let updatedEnemies = [];
+            enemies.forEach((enemy, index) => {
+                if (!enemiesToRemove.has(index)) {
+                    updatedEnemies.push(enemy);
+                }
+            });
+            enemies = updatedEnemies;
             enemiesToRemove.clear();
 
 // Update spatial hash after removing enemies
@@ -823,6 +787,7 @@
                 }
                 spatialHash.get(key).push(index);
             });
+
 
 // Remove bullets marked for removal
             bulletsToRemove.forEach(bIndex => bullets.splice(bIndex, 1));
@@ -855,21 +820,7 @@
 // Clear spatial hash for next iteration
             spatialHash.clear();
 
-            // Event listeners for keydown and keyup events
-            document.addEventListener('keydown', handleKeydown);
-            document.addEventListener('keyup', handleKeyup);
 
-            function handleKeydown(event) {
-                keys[event.key] = true;
-                if(event.key === '§')
-                {
-                    score += 1000000000000;
-                }
-            }
-
-            function handleKeyup(event) {
-                keys[event.key] = false;
-            }
 
 
             // Check collision with enemy bullets (for player)
@@ -915,7 +866,8 @@
         // Function to reset game state (example)
         function resetGame() {
             score = 0;
-            rebirthCost = 8000;
+            rebirthCost = 8000; // Reset rebirthCost to the initial value
+            rebirthCount = 0; // Reset rebirthCount to 0
             totalScore = 0;
             bulletSize = 7;
             bulletSizeUpgradeCost = 70;
@@ -938,6 +890,7 @@
 
             saveGame(); // Save the reset game state
         }
+
 
         // Increment survival time and apply score multiplier
         survivalTime += 1; // Increase by 1 second each frame (assuming 60 FPS)
@@ -962,6 +915,10 @@
         totalScore += score; // Add current score to total score
         finalScoreSpan.textContent = score; // Display the final score in game over screen
         totalScoreSpan.textContent = totalScore; // Update total score display
+        const rebirthCostDisplay = document.getElementById('rebirthCostDisplay');
+        if (rebirthCostDisplay) {
+            rebirthCostDisplay.textContent = rebirthCost; // Update rebirth cost display
+        }
         updateGameState(Date.now());
         gameOverScreen.style.display = 'block'; // Show game over screen
         canvas.style.display = 'none'; // Hide the game canvas
